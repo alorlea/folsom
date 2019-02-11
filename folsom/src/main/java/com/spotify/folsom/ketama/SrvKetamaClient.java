@@ -19,10 +19,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.spotify.dns.DnsSrvResolver;
 import com.spotify.dns.LookupResult;
-import com.spotify.folsom.AbstractRawMemcacheClient;
-import com.spotify.folsom.ConnectionChangeListener;
-import com.spotify.folsom.ObservableClient;
-import com.spotify.folsom.RawMemcacheClient;
+import com.spotify.folsom.*;
+import com.spotify.folsom.Resolver.ResolveResult;
 import com.spotify.folsom.client.NotConnectedClient;
 import com.spotify.folsom.client.Request;
 import com.spotify.folsom.guava.HostAndPort;
@@ -42,8 +40,7 @@ public class SrvKetamaClient extends AbstractRawMemcacheClient {
   public static final int MAX_DNS_WAIT_TIME = 3600;
 
   private final ScheduledExecutorService executor;
-  private final String srvRecord;
-  private final DnsSrvResolver srvResolver;
+  private final Resolver resolver;
   private final long period;
   private final TimeUnit periodUnit;
 
@@ -62,16 +59,14 @@ public class SrvKetamaClient extends AbstractRawMemcacheClient {
   private boolean shutdown = false;
 
   public SrvKetamaClient(
-      final String srvRecord,
-      DnsSrvResolver srvResolver,
+      Resolver srvResolver,
       ScheduledExecutorService executor,
       long period,
       TimeUnit periodUnit,
       final Connector connector,
       long shutdownDelay,
       TimeUnit shutdownUnit) {
-    this.srvRecord = srvRecord;
-    this.srvResolver = srvResolver;
+    this.resolver = srvResolver;
     this.period = period;
     this.periodUnit = periodUnit;
     this.connector = connector;
@@ -96,11 +91,11 @@ public class SrvKetamaClient extends AbstractRawMemcacheClient {
       }
       long ttl = TimeUnit.SECONDS.convert(period, periodUnit);
       try {
-        List<LookupResult> lookupResults = srvResolver.resolve(srvRecord);
-        List<HostAndPort> hosts = Lists.newArrayListWithCapacity(lookupResults.size());
-        for (LookupResult lookupResult : lookupResults) {
-          hosts.add(HostAndPort.fromParts(lookupResult.host(), lookupResult.port()));
-          ttl = Math.min(ttl, lookupResult.ttl());
+        List<ResolveResult> resolveResults = resolver.resolve();
+        List<HostAndPort> hosts = Lists.newArrayListWithCapacity(resolveResults.size());
+        for (ResolveResult resolveResult : resolveResults) {
+          hosts.add(HostAndPort.fromParts(resolveResult.getHost(), resolveResult.getPort()));
+          ttl = Math.min(ttl, resolveResult.getTtl());
         }
         List<HostAndPort> newAddresses =
             Ordering.from(HostAndPortComparator.INSTANCE).sortedCopy(hosts);

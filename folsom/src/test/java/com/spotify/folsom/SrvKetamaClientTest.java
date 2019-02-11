@@ -39,7 +39,7 @@ public class SrvKetamaClientTest {
     HostAndPort hostNameC = HostAndPort.fromString("c:1");
     HostAndPort hostNameD = HostAndPort.fromString("d:1");
 
-    DnsSrvResolver resolver = Mockito.mock(DnsSrvResolver.class);
+    Resolver resolver = Mockito.mock(Resolver.class);
 
     // Run shutdown code immediately
     DeterministicScheduler executor = new DeterministicScheduler();
@@ -55,7 +55,6 @@ public class SrvKetamaClientTest {
 
     SrvKetamaClient ketamaClient =
         new SrvKetamaClient(
-            "the-srv-record",
             resolver,
             executor,
             1000,
@@ -67,7 +66,7 @@ public class SrvKetamaClientTest {
 
     assertFalse(ketamaClient.isConnected());
 
-    Mockito.when(resolver.resolve(Mockito.anyString()))
+    Mockito.when(resolver.resolve())
         .thenReturn(ImmutableList.of(result("a"), result("b")));
     ketamaClient.updateDNS();
     executor.tick(1000, TimeUnit.SECONDS);
@@ -76,7 +75,7 @@ public class SrvKetamaClientTest {
     assertTrue(knownClients.get(hostNameA).isConnected());
     assertTrue(knownClients.get(hostNameB).isConnected());
 
-    Mockito.when(resolver.resolve(Mockito.anyString()))
+    Mockito.when(resolver.resolve())
         .thenReturn(ImmutableList.of(result("b"), result("c")));
     ketamaClient.updateDNS();
     executor.tick(1000, TimeUnit.SECONDS);
@@ -86,7 +85,7 @@ public class SrvKetamaClientTest {
     assertTrue(knownClients.get(hostNameB).isConnected());
     assertTrue(knownClients.get(hostNameC).isConnected());
 
-    Mockito.when(resolver.resolve(Mockito.anyString()))
+    Mockito.when(resolver.resolve())
         .thenReturn(ImmutableList.of(result("c"), result("d")));
     ketamaClient.updateDNS();
     executor.tick(1000, TimeUnit.SECONDS);
@@ -100,7 +99,7 @@ public class SrvKetamaClientTest {
     ketamaClient.shutdown();
   }
 
-  private LookupResult result(final String hostname) {
-    return LookupResult.create(hostname, 1, 100, 100, 100);
+  private Resolver.ResolveResult result(final String hostname) {
+    return new Resolver.ResolveResult(hostname, 1, 100);
   }
 }

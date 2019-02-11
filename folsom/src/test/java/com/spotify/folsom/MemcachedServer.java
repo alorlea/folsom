@@ -22,7 +22,8 @@ import org.testcontainers.containers.GenericContainer;
 
 public class MemcachedServer {
 
-  private final GenericContainer container;
+  private final boolean isContainer = false;
+  private GenericContainer container = null;
   private final MemcacheClient<String> client;
 
   public MemcachedServer() {
@@ -36,7 +37,6 @@ public class MemcachedServer {
       container.withEnv("MEMCACHED_USERNAME", username);
       container.withEnv("MEMCACHED_PASSWORD", password);
     }
-    container.start();
 
     final MemcacheClientBuilder<String> builder =
         MemcacheClientBuilder.newStringClient().withAddress(getHost(), getPort());
@@ -58,15 +58,25 @@ public class MemcachedServer {
     } catch (InterruptedException | TimeoutException e) {
       throw new RuntimeException(e);
     }
-    container.stop();
+    if (isContainer) {
+      container.stop();
+    }
   }
 
   public int getPort() {
-    return container.getMappedPort(11211);
+    if (isContainer) {
+      return container.getMappedPort(11211);
+    } else {
+      return 11212;
+    }
   }
 
   public String getHost() {
-    return container.getContainerIpAddress();
+    if (isContainer) {
+      return container.getContainerIpAddress();
+    } else {
+      return "127.0.0.1";
+    }
   }
 
   public void flush() {

@@ -40,6 +40,7 @@ import com.spotify.folsom.guava.HostAndPort;
 import com.spotify.folsom.ketama.AddressAndClient;
 import com.spotify.folsom.ketama.KetamaMemcacheClient;
 import com.spotify.folsom.ketama.SrvKetamaClient;
+import com.spotify.folsom.ketama.SrvResolver;
 import com.spotify.folsom.reconnect.ReconnectingClient;
 import com.spotify.folsom.retry.RetryingClient;
 import com.spotify.folsom.roundrobin.RoundRobinMemcacheClient;
@@ -110,6 +111,7 @@ public class MemcacheClientBuilder<V> {
   private Supplier<Executor> executor = DEFAULT_REPLY_EXECUTOR;
   private Charset charset = Charsets.UTF_8;
 
+  private Resolver resolver;
   private DnsSrvResolver srvResolver;
   private String srvRecord;
   private long dnsRefreshPeriod = 60 * 1000L;
@@ -208,12 +210,18 @@ public class MemcacheClientBuilder<V> {
     return this;
   }
 
+  public MemcacheClientBuilder<V> withResolver(final Resolver resolver) {
+    this.resolver = resolver;
+    return this;
+  }
+
   /**
    * Use SRV to lookup nodes instead of a fixed set of addresses. This means that the set of nodes
    * can change dynamically over time.
    *
    * @param srvRecord the SRV record to use.
    * @return itself
+   * @deprecated Use #withResolver
    */
   public MemcacheClientBuilder<V> withSRVRecord(final String srvRecord) {
     this.srvRecord = checkNotNull(srvRecord);
@@ -250,9 +258,11 @@ public class MemcacheClientBuilder<V> {
    * @param srvResolver the resolver to use. Default is a caching resolver from {@link
    *     com.spotify.dns.DnsSrvResolvers}
    * @return itself
+   * @deprecated Use #withResolver
    */
   public MemcacheClientBuilder<V> withSrvResolver(final DnsSrvResolver srvResolver) {
-    this.srvResolver = checkNotNull(srvResolver, "srvResolver");
+    checkNotNull(srvResolver, "srvResolver");
+    this.srvResolver = srvResolver;
     return this;
   }
 
@@ -541,14 +551,17 @@ public class MemcacheClientBuilder<V> {
 
   private RawMemcacheClient createSRVClient(
       final boolean binary, final Authenticator authenticator) {
-    DnsSrvResolver resolver = srvResolver;
+    Resolver resolver = this.resolver;
     if (resolver == null) {
-      resolver = DEFAULT_SRV_RESOLVER_EXECUTOR.get();
+      if (srvResolver == null) {
+        resolver = new SrvResolver(DEFAULT_SRV_RESOLVER_EXECUTOR.get(), srvRecord);
+      } else {
+        resolver = new SrvResolver(srvResolver, srvRecord);
+      }
     }
 
     SrvKetamaClient client =
         new SrvKetamaClient(
-            srvRecord,
             resolver,
             DEFAULT_SCHEDULED_EXECUTOR.get(),
             dnsRefreshPeriod,
