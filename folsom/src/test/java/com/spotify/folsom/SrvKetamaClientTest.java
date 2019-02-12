@@ -20,8 +20,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
-import com.spotify.dns.DnsSrvResolver;
-import com.spotify.dns.LookupResult;
 import com.spotify.folsom.client.test.FakeRawMemcacheClient;
 import com.spotify.folsom.guava.HostAndPort;
 import com.spotify.folsom.ketama.SrvKetamaClient;
@@ -66,8 +64,7 @@ public class SrvKetamaClientTest {
 
     assertFalse(ketamaClient.isConnected());
 
-    Mockito.when(resolver.resolve())
-        .thenReturn(ImmutableList.of(result("a"), result("b")));
+    Mockito.when(resolver.resolve()).thenReturn(ImmutableList.of(result("a"), result("b")));
     ketamaClient.updateDNS();
     executor.tick(1000, TimeUnit.SECONDS);
 
@@ -75,8 +72,7 @@ public class SrvKetamaClientTest {
     assertTrue(knownClients.get(hostNameA).isConnected());
     assertTrue(knownClients.get(hostNameB).isConnected());
 
-    Mockito.when(resolver.resolve())
-        .thenReturn(ImmutableList.of(result("b"), result("c")));
+    Mockito.when(resolver.resolve()).thenReturn(ImmutableList.of(result("b"), result("c")));
     ketamaClient.updateDNS();
     executor.tick(1000, TimeUnit.SECONDS);
 
@@ -85,8 +81,7 @@ public class SrvKetamaClientTest {
     assertTrue(knownClients.get(hostNameB).isConnected());
     assertTrue(knownClients.get(hostNameC).isConnected());
 
-    Mockito.when(resolver.resolve())
-        .thenReturn(ImmutableList.of(result("c"), result("d")));
+    Mockito.when(resolver.resolve()).thenReturn(ImmutableList.of(result("c"), result("d")));
     ketamaClient.updateDNS();
     executor.tick(1000, TimeUnit.SECONDS);
 

@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.spotify.dns.DnsSrvResolver;
 import com.spotify.dns.LookupResult;
 import com.spotify.folsom.Resolver;
-
 import java.util.List;
 
 public class SrvResolver implements Resolver {

@@ -17,8 +17,6 @@ package com.spotify.folsom.ketama;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.spotify.dns.DnsSrvResolver;
-import com.spotify.dns.LookupResult;
 import com.spotify.folsom.*;
 import com.spotify.folsom.Resolver.ResolveResult;
 import com.spotify.folsom.client.NotConnectedClient;
@@ -59,14 +57,14 @@ public class SrvKetamaClient extends AbstractRawMemcacheClient {
   private boolean shutdown = false;
 
   public SrvKetamaClient(
-      Resolver srvResolver,
+      Resolver resolver,
       ScheduledExecutorService executor,
       long period,
       TimeUnit periodUnit,
       final Connector connector,
       long shutdownDelay,
       TimeUnit shutdownUnit) {
-    this.resolver = srvResolver;
+    this.resolver = resolver;
     this.period = period;
     this.periodUnit = periodUnit;
     this.connector = connector;
@@ -155,7 +153,15 @@ public class SrvKetamaClient extends AbstractRawMemcacheClient {
 
   @Override
   public Throwable getConnectionFailure() {
-    return currentClient.getConnectionFailure();
+    final Throwable e = currentClient.getConnectionFailure();
+    if (e != null) {
+      return e;
+    }
+    final RawMemcacheClient pendingClient = this.pendingClient;
+    if (pendingClient != null) {
+      return pendingClient.getConnectionFailure();
+    }
+    return null;
   }
 
   @Override
